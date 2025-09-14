@@ -58,5 +58,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("androidx.compose.material3:material3:1.3.2")
+    implementation("androidx.compose.material:material:1.9.1")
 
 }

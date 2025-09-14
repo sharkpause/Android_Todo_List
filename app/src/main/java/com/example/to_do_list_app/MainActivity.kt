@@ -4,9 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
+import androidx.compose.animation.Animatable
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -21,13 +24,23 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+import android.util.Log
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,7 +59,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(padding: PaddingValues) {
     var task by remember { mutableStateOf("") }
-    var taskList = remember { mutableStateListOf<String>() }
+    val taskList = remember { mutableStateListOf<String>() }
 
     Column(modifier = Modifier.padding(padding)) {
         Row(modifier = Modifier.padding(bottom = 30.dp).fillMaxWidth()) {
@@ -87,7 +100,21 @@ fun AddTaskButton(onClick: () -> Unit) {
 fun TaskList(taskList: SnapshotStateList<String>) {
     LazyColumn {
         items(taskList.size) { index ->
-            TaskItem(taskText = taskList[index])
+            SwipeableItemWithActions(
+                isRevealed = false,
+                actions = {
+                    Text(
+                        text = "Delete",
+                    );
+                    Text(
+                        text = "Edit"
+                    )
+                },
+                modifier = Modifier,
+                onCollapsed = {},
+                onExpanded = {},
+                content = { TaskItem(taskText = taskList[index]) }
+            )
         }
     }
 }
@@ -109,6 +136,78 @@ fun TaskItem(taskText: String) {
                 text = taskText,
                 modifier = Modifier.padding(10.dp)
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun SwipeableItemWithActions(
+    isRevealed: Boolean,
+    actions: @Composable RowScope.() -> Unit,
+    modifier: Modifier,
+    onExpanded: () -> Unit,
+    onCollapsed: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    var contextMenuWidth by remember { mutableFloatStateOf(0f) }
+    val offset = remember { Animatable(contextMenuWidth) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(key1 = isRevealed, contextMenuWidth) {
+        if(isRevealed) {
+            offset.animateTo(contextMenuWidth)
+        } else {
+            offset.animateTo(0f)
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+    ) {
+        Row(
+            modifier = Modifier
+                .onSizeChanged {
+                    contextMenuWidth = it.width.toFloat()
+                },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            actions()
+        }
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(0 - offset.value.roundToInt(), y = 0) }
+                .pointerInput(true) {
+                    detectHorizontalDragGestures(
+                        onHorizontalDrag = { _, dragAmount ->
+                            scope.launch {
+                                val newOffset = ( offset.value - dragAmount ).coerceIn(0f, contextMenuWidth)
+                                offset.snapTo(newOffset)
+                            }
+                        },
+                        onDragEnd = {
+                            Log.d("Offset value: ", "${offset.value}")
+                            when {
+                                 offset.value > contextMenuWidth / 2f -> {
+                                    scope.launch {
+                                        offset.animateTo(contextMenuWidth)
+                                        onExpanded()
+                                    }
+                                } else -> {
+                                    scope.launch {
+                                        offset.animateTo(0f)
+                                        onCollapsed()
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
+        ) {
+            content()
         }
     }
 }
