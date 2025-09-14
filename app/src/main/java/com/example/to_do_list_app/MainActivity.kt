@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -40,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 
 
 class MainActivity : ComponentActivity() {
@@ -100,20 +102,38 @@ fun AddTaskButton(onClick: () -> Unit) {
 fun TaskList(taskList: SnapshotStateList<String>) {
     LazyColumn {
         items(taskList.size) { index ->
+            var buttonsWidth by remember { mutableStateOf(0f) }
+
             SwipeableItemWithActions(
                 isRevealed = false,
                 actions = {
-                    Text(
-                        text = "Delete",
-                    );
-                    Text(
-                        text = "Edit"
-                    )
+                    Box(
+
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                text = "Delete",
+                                modifier = Modifier.onSizeChanged { size ->
+                                    buttonsWidth = size.width * 2f
+                                    Log.d("Delete button width", "$buttonsWidth")
+                                }
+                            )
+                            Text(
+                                text = "Edit"
+                            )
+                        }
+                    }
                 },
-                modifier = Modifier,
+                modifier = Modifier.fillMaxWidth(),
                 onCollapsed = {},
                 onExpanded = {},
-                content = { TaskItem(taskText = taskList[index]) }
+                content = { TaskItem(taskText = taskList[index]) },
+                buttonsWidth = buttonsWidth
             )
         }
     }
@@ -148,7 +168,8 @@ fun SwipeableItemWithActions(
     modifier: Modifier,
     onExpanded: () -> Unit,
     onCollapsed: () -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
+    buttonsWidth: Float
 ) {
     var contextMenuWidth by remember { mutableFloatStateOf(0f) }
     val offset = remember { Animatable(contextMenuWidth) }
@@ -179,21 +200,22 @@ fun SwipeableItemWithActions(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset { IntOffset(0 - offset.value.roundToInt(), y = 0) }
+                .offset { IntOffset(x = -offset.value.roundToInt(), y = 0) }
                 .pointerInput(true) {
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { _, dragAmount ->
                             scope.launch {
-                                val newOffset = ( offset.value - dragAmount ).coerceIn(0f, contextMenuWidth)
+                                val newOffset = ( offset.value - dragAmount ).coerceIn(0f, buttonsWidth)
                                 offset.snapTo(newOffset)
                             }
                         },
                         onDragEnd = {
-                            Log.d("Offset value: ", "${offset.value}")
+                            Log.d("Offset value", "${offset.value}")
+                            Log.d("Buttons width", "$buttonsWidth")
                             when {
-                                 offset.value > contextMenuWidth / 2f -> {
+                                 offset.value > buttonsWidth / 2f -> {
                                     scope.launch {
-                                        offset.animateTo(contextMenuWidth)
+                                        offset.animateTo(buttonsWidth)
                                         onExpanded()
                                     }
                                 } else -> {
