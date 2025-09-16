@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.Animatable
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -41,7 +40,7 @@ import kotlin.math.roundToInt
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 
 
 class MainActivity : ComponentActivity() {
@@ -74,6 +73,14 @@ fun MainScreen(padding: PaddingValues) {
                     taskList.add(task)
                 }
             )
+            IconButton(
+                onClick = {}
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_delete_outline),
+                    contentDescription = "A"
+                )
+            }
         }
 
         Column {
@@ -102,29 +109,29 @@ fun AddTaskButton(onClick: () -> Unit) {
 fun TaskList(taskList: SnapshotStateList<String>) {
     LazyColumn {
         items(taskList.size) { index ->
-            var buttonsWidth by remember { mutableStateOf(0f) }
+            var buttonsWidth by remember { mutableFloatStateOf(0f) }
 
             SwipeableItemWithActions(
                 isRevealed = false,
                 actions = {
-                    Box(
-
-                    ) {
+                    Box {
                         Row(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
                                 .fillMaxWidth(),
                             horizontalArrangement = Arrangement.End
                         ) {
-                            Text(
-                                text = "Delete",
-                                modifier = Modifier.onSizeChanged { size ->
-                                    buttonsWidth = size.width * 2f
-                                    Log.d("Delete button width", "$buttonsWidth")
-                                }
+                            ActionButton(
+                                contentDescription = "Delete",
+                                icon = R.drawable.ic_delete_outline,
+                                onClick = {},
+                                set = { buttonsWidth = it }
                             )
-                            Text(
-                                text = "Edit"
+                            ActionButton(
+                                contentDescription = "Edit",
+                                icon = R.drawable.ic_edit_outline,
+                                onClick = {},
+                                set = { buttonsWidth = it }
                             )
                         }
                     }
@@ -157,6 +164,26 @@ fun TaskItem(taskText: String) {
                 modifier = Modifier.padding(10.dp)
             )
         }
+    }
+}
+
+@Composable
+fun ActionButton(
+    icon: Int,
+    onClick: () -> Unit,
+    contentDescription: String,
+    set: (Float) -> Unit,
+) {
+    IconButton(
+        onClick = onClick
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = contentDescription,
+            modifier = Modifier.onSizeChanged { size ->
+                set(size.width * 2f)
+            },
+        )
     }
 }
 
