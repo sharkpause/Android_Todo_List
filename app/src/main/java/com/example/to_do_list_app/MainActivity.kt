@@ -40,6 +40,7 @@ import kotlin.math.roundToInt
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import java.util.UUID
@@ -70,24 +71,19 @@ fun MainScreen(padding: PaddingValues) {
     val taskList = remember { mutableStateListOf<Task>() }
 
     Column(modifier = Modifier.padding(padding)) {
-        Row(modifier = Modifier.padding(bottom = 30.dp).fillMaxWidth()) {
+        Row(modifier = Modifier
+            .padding(bottom = 30.dp)
+            .fillMaxWidth()) {
             TaskInput(
                 task = task,
-                onTaskInputChange = { task = it }
+                onTaskInputChange = { task = it },
+                modifier = Modifier.widthIn(max = 200.dp)
             )
             AddTaskButton(
                 onClick = {
                     taskList.add(Task(title = task))
                 }
             )
-            IconButton(
-                onClick = {}
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_delete_outline),
-                    contentDescription = "A"
-                )
-            }
         }
 
         Column {
@@ -97,11 +93,13 @@ fun MainScreen(padding: PaddingValues) {
 }
 
 @Composable
-fun TaskInput(task: String, onTaskInputChange: (String) -> Unit) {
+fun TaskInput(task: String, onTaskInputChange: (String) -> Unit, modifier: Modifier) {
     TextField(
         value = task,
         onValueChange = { onTaskInputChange(it) },
-        label = { Text("Enter your task:") },
+        label = { Text("Enter the title of your task") },
+        singleLine = true,
+        modifier = modifier
     )
 }
 
@@ -117,6 +115,7 @@ fun TaskList(taskList: SnapshotStateList<Task>) {
     LazyColumn {
         items(taskList.size) { index ->
             var buttonsWidth by remember { mutableFloatStateOf(0f) }
+            var deleteTargetID = remember { "" }
 
             SwipeableItemWithActions(
                 isRevealed = false,
@@ -131,7 +130,9 @@ fun TaskList(taskList: SnapshotStateList<Task>) {
                             ActionButton(
                                 contentDescription = "Delete",
                                 icon = R.drawable.ic_delete_outline,
-                                onClick = {},
+                                onClick = {
+                                    taskList.removeIf { it.id == deleteTargetID }
+                                },
                                 set = { buttonsWidth += it },
                                 modifier = Modifier.background(Color(0xFFe74c3c))
                             )
@@ -148,32 +149,30 @@ fun TaskList(taskList: SnapshotStateList<Task>) {
                 modifier = Modifier.fillMaxWidth(),
                 onCollapsed = {},
                 onExpanded = {},
-                content = { TaskItem(taskText = taskList[index].title) },
+                content = { TaskItem(task = taskList[index], set = { deleteTargetID = it }) },
                 buttonsWidth = buttonsWidth
             )
         }
     }
 }
 
-fun deleteButton(taskList: SnapshotStateList<Task>) {
-    // taskList.removeAt()
-}
-
 @Composable
-fun TaskItem(taskText: String) {
+fun TaskItem(task: Task, set: (String) -> Unit) {
     Box (
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp)
             .shadow(8.dp, RoundedCornerShape(8.dp))
     ) {
+        set(task.id)
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             shape = RoundedCornerShape(8.dp)
         ) {
             Text(
-                text = taskText,
+                text = task.title,
                 modifier = Modifier.padding(10.dp)
             )
         }
@@ -246,7 +245,8 @@ fun SwipeableItemWithActions(
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { _, dragAmount ->
                             scope.launch {
-                                val newOffset = ( offset.value - dragAmount ).coerceIn(0f, buttonsWidth)
+                                val newOffset =
+                                    (offset.value - dragAmount).coerceIn(0f, buttonsWidth)
                                 offset.snapTo(newOffset)
                             }
                         },
@@ -254,12 +254,14 @@ fun SwipeableItemWithActions(
                             Log.d("Offset value", "${offset.value}")
                             Log.d("Buttons width", "$buttonsWidth")
                             when {
-                                 offset.value > buttonsWidth / 2f -> {
+                                offset.value > buttonsWidth / 2f -> {
                                     scope.launch {
                                         offset.animateTo(buttonsWidth)
                                         onExpanded()
                                     }
-                                } else -> {
+                                }
+
+                                else -> {
                                     scope.launch {
                                         offset.animateTo(0f)
                                         onCollapsed()
