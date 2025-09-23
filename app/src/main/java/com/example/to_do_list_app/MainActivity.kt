@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
@@ -125,13 +126,15 @@ fun TaskList(taskList: SnapshotStateList<String>) {
                                 contentDescription = "Delete",
                                 icon = R.drawable.ic_delete_outline,
                                 onClick = {},
-                                set = { buttonsWidth = it }
+                                set = { buttonsWidth += it },
+                                modifier = Modifier.background(Color(0xFFe74c3c))
                             )
                             ActionButton(
                                 contentDescription = "Edit",
                                 icon = R.drawable.ic_edit_outline,
                                 onClick = {},
-                                set = { buttonsWidth = it }
+                                set = { buttonsWidth += it },
+                                modifier = Modifier.background(Color(0xFF3498db))
                             )
                         }
                     }
@@ -173,16 +176,17 @@ fun ActionButton(
     onClick: () -> Unit,
     contentDescription: String,
     set: (Float) -> Unit,
+    modifier: Modifier
 ) {
     IconButton(
-        onClick = onClick
+        onClick = onClick,
+        modifier = modifier.onSizeChanged { size ->
+            set(size.width.toFloat())
+        }
     ) {
         Icon(
             painter = painterResource(icon),
             contentDescription = contentDescription,
-            modifier = Modifier.onSizeChanged { size ->
-                set(size.width * 2f)
-            },
         )
     }
 }
