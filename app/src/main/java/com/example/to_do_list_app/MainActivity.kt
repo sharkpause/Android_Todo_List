@@ -42,7 +42,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
+import java.util.UUID
 
+data class Task(
+    val id: String = UUID.randomUUID().toString(),
+    val title: String,
+    val description: String = ""
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,7 +67,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(padding: PaddingValues) {
     var task by remember { mutableStateOf("") }
-    val taskList = remember { mutableStateListOf<String>() }
+    val taskList = remember { mutableStateListOf<Task>() }
 
     Column(modifier = Modifier.padding(padding)) {
         Row(modifier = Modifier.padding(bottom = 30.dp).fillMaxWidth()) {
@@ -71,7 +77,7 @@ fun MainScreen(padding: PaddingValues) {
             )
             AddTaskButton(
                 onClick = {
-                    taskList.add(task)
+                    taskList.add(Task(title = task))
                 }
             )
             IconButton(
@@ -107,7 +113,7 @@ fun AddTaskButton(onClick: () -> Unit) {
 }
 
 @Composable
-fun TaskList(taskList: SnapshotStateList<String>) {
+fun TaskList(taskList: SnapshotStateList<Task>) {
     LazyColumn {
         items(taskList.size) { index ->
             var buttonsWidth by remember { mutableFloatStateOf(0f) }
@@ -142,11 +148,15 @@ fun TaskList(taskList: SnapshotStateList<String>) {
                 modifier = Modifier.fillMaxWidth(),
                 onCollapsed = {},
                 onExpanded = {},
-                content = { TaskItem(taskText = taskList[index]) },
+                content = { TaskItem(taskText = taskList[index].title) },
                 buttonsWidth = buttonsWidth
             )
         }
     }
+}
+
+fun deleteButton(taskList: SnapshotStateList<Task>) {
+    // taskList.removeAt()
 }
 
 @Composable
